@@ -67,7 +67,6 @@ class Profile:
             self.n2 = gsw.Nsquared(self.isals,self.itemps,self.ipres,self.lat)[0]
 
     def neutralDepth(self,s,t,p,debug=False,searchrange=100,depthname=None):
-        print(self.ipres,p)
         at = np.where(np.asarray(self.ipres) == p)[0][0]
 
         depths =  (np.asarray(self.ipres[:]) +p)/2.0
@@ -84,11 +83,8 @@ class Profile:
 
         zero_crossings = np.where(np.diff(np.sign(Es)))[0]
         smallest = np.argmin(np.abs(Es))
-        plt.plot(Es,self.ipres)
-        plt.show()
         if len(zero_crossings)>=1 :
             if abs(self.ipres[zero_crossings[0]] - self.ipres[zero_crossings[-1]])>100:
-                print(zero_crossings)
                 return None
             a  =np.asarray(zero_crossings)
             #print("More than one crossing")

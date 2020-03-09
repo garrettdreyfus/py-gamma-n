@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 from profile import Profile
+import gsw 
 
 refdata = h5py.File('refdata.mat', 'r')
 
@@ -41,35 +42,78 @@ t_ns_known = [10.90640,2.300296198425469,1.460659594687408]
 
 p_ns_known = [260.109,1953.131680473056,2943.451620399693]
 
+gamma_n_surfaces = [26.8, 27.9, 28.1]
 
 
-def gamma_n(refprofiles,refdata,s,t,p,lon,lat):
+
+def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
     lats = np.asarray(refdata["lat_ref"]).flatten() 
     lons = np.asarray(refdata["long_ref"]).flatten() 
     lati = np.floor(len(lats)*(lat-lats[0])/(float(lats[-1]-lats[0])))
     lati = [lati,lati+1]
     loni = np.floor(len(lons)*float(lon-lons[0])/(float(lons[-1]-lons[0])))
     loni = [loni,loni-1]
-    print("#"*5)
-    print(lon,lat)
-    print("#"*5)
     ref_s = []
     ref_t = []
     ref_p = []
     ref_gamma = []
+    ds = []
     for coords in np.array(np.meshgrid(loni,lati)).T.reshape(-1, 2):
-        prof = refprofiles[int(coords[0])][int(coords[1])]
+        coords = (int(coords[0]),int(coords[1]))
+        prof = refprofiles[coords[0]][coords[1]]
         if prof:
            sref,tref,pref,gammaref = prof.neutralDepth(s,t,p) 
            ref_s.append(sref)
            ref_t.append(tref)
            ref_p.append(pref)
            ref_gamma.append(gammaref)
-    print(ref_s)
-    print(ref_t)
-    print(ref_p)
-    print(ref_gamma)
+           ds.append(np.linalg.norm(((lon-lons[coords[0]])/(loni[1]-loni[0]),(lat-lats[coords[1]])/(lati[1]-lati[0]))))
+
+    scaling = (np.asarray(ds))/np.linalg.norm(np.asarray(ds))
+
+    return np.dot(scaling,ref_s)/np.sum(scaling),np.dot(scaling,ref_t)/np.sum(scaling),np.dot(scaling,ref_p)/np.sum(scaling),np.dot(scaling,ref_gamma)/np.sum(scaling)
     
 
-gamma_n = partial(gamma_n,loadProfiles(refdata),refdata)
-gamma_n(SP[0],t[0],p[0],lon,lat)
+singlegamma_n = partial(singlegamma_n,loadProfiles(refdata),refdata)
+
+def gamma_n(s,t,p,lon,lat):
+    solutions=[]
+    solutiont = []
+    solutionp = []
+    solutiongamma =[]
+    for l in range(len(p)):
+        outs,outt,outp,outg = singlegamma_n(s[l],t[l],p[l],lon,lat)
+        solutions.append(outs)
+        solutiont.append(outt)
+        solutionp.append(outp)
+        solutiongamma.append(outg)
+    return solutions,solutiont,solutionp,solutiongamma
+
+def neutralsurfaces(s,t,p,gamma_n,surfaces):
+    sals=[]
+    temps=[]
+    pres = []
+    for surf in surfaces:
+        solp = np.interp(surf,gamma,p)
+        pres.append(solp)
+        sals.append(np.interp(solp,p,s))
+        temps.append(np.interp(solp,p,t))
+    return sals,temps,pres
+
+    
+
+sals,temps,pres,gamma = gamma_n(SP,t,p,lon,lat)
+print(sals,temps,pres)
+knowns,knownt,knownp = neutralsurfaces(sals,temps,pres,gamma,gamma_n_surfaces)
+ 
+fig, axs = plt.subplots(3)
+fig.suptitle('comparisons')
+axs[0].plot(knowns)
+axs[0].plot(gsw.SA_from_SP(SP_ns_known,p_ns_known,lon,lat))
+axs[1].plot(knownt)
+axs[1].plot(gsw.CT_from_t(gsw.SA_from_SP(SP_ns_known,p_ns_known,lon,lat),t_ns_known,p_ns_known))
+axs[2].plot(knownp)
+axs[2].plot(p_ns_known)
+plt.show()
+
+
