@@ -1,35 +1,31 @@
 import numpy as np
-import operator
 import gsw 
-from mpl_toolkits.mplot3d import Axes3D
 import datetime
 import matplotlib.pyplot as plt
 from scipy import interpolate
-import mygsw
-from scipy.interpolate import UnivariateSpline
-#import gswmatlab.pyinterface as matgsw
 
 
 class Profile:
-    def __init__(self,eyed, data,tempunit,salunit):
+    def __init__(self,sals,temps,pres,gamma,lat,lon):
         ##id of profiles plus info
+        tempunit = "insitu"
+        salunit = "practical"
         if tempunit not in ["insitu","conservative","potential"]:
             raise ValueError("This temperature unit is not supported")
         if salunit not in ["practical","absolute","insitu"]:
             raise ValueError("This salinity unit is not supported")
-        if not {"sal","temp","pres","lat","lon"}.issubset(data.keys()):
-            raise ValueError("This does not contain the required information")
-        if abs(max(data["pres"])-min(data["pres"])) <50:
-            print(data["pres"])
-            raise ValueError("This does not contain enough pressure information ")
+        self.lat = lat
+        self.lon = lon
+        nanmask = ~np.isnan(temps) 
+        nanmask = np.logical_and(~np.isnan(sals),nanmask)
+        nanmask = np.logical_and(~np.isnan(pres),nanmask)
+        nanmask = np.logical_and(~np.isnan(gamma),nanmask)
 
-        self.eyed = eyed
-        self.lat = data["lat"]
-        self.lon = data["lon"]
 	#Temerature Salinity and Pressure
-        self.temps = np.asarray(data["temp"])
-        self.sals = np.asarray(data["sal"])
-        self.pres = np.abs(np.asarray(data["pres"]))
+        self.temps = np.asarray(temps)[nanmask]
+        self.sals = np.asarray(sals)[nanmask]
+        self.pres = np.asarray(np.abs(pres))[nanmask]
+        self.gamma = np.asarray(gamma)[nanmask]
 
         if salunit == "practical":
             self.sals = gsw.SA_from_SP(self.sals,self.pres,self.lon,self.lat)
@@ -44,10 +40,12 @@ class Profile:
         self.temps = self.temps[s]
         self.sals = self.sals[s]
         self.pres = self.pres[s]
+        self.gamma = self.gamma[s]
         ##Interpolated Temperature, Salinity, and Pressure
         self.itemps = []
         self.isals = []
         self.ipres = []
+        self.igamma = []
        	self.idensities = []
         self.neutraldepth = {}
         self.interpolate()
@@ -59,6 +57,7 @@ class Profile:
 
             self.isals = np.interp(self.ipres,self.pres,self.sals)
             self.itemps = np.interp(self.ipres,self.pres,self.temps)
+            self.igamma = np.interp(self.ipres,self.pres,self.gamma)
             self.ialpha = gsw.alpha(self.isals,self.itemps,self.ipres)
             self.ibeta = gsw.beta(self.isals,self.itemps,self.ipres)
             self.idalphadtheta = gsw.cabbeling(self.isals,self.itemps,self.ipres)
@@ -68,10 +67,8 @@ class Profile:
             self.n2 = gsw.Nsquared(self.isals,self.itemps,self.ipres,self.lat)[0]
 
     def neutralDepth(self,s,t,p,debug=False,searchrange=100,depthname=None):
-        depth = int(depth)
-        plowerbound = min(self.ipres[0])
-        pupperbound = min(self.ipres[-1])
-        at = np.where(np.asarray(self.ipres) == depth)[0][0]
+        print(self.ipres,p)
+        at = np.where(np.asarray(self.ipres) == p)[0][0]
 
         depths =  (np.asarray(self.ipres[:]) +p)/2.0
         
@@ -87,12 +84,14 @@ class Profile:
 
         zero_crossings = np.where(np.diff(np.sign(Es)))[0]
         smallest = np.argmin(np.abs(Es))
+        plt.plot(Es,self.ipres)
+        plt.show()
         if len(zero_crossings)>=1 :
-            if abs(p2.ipres[zero_crossings[0]] - p2.ipres[zero_crossings[-1]])>100:
+            if abs(self.ipres[zero_crossings[0]] - self.ipres[zero_crossings[-1]])>100:
+                print(zero_crossings)
                 return None
             a  =np.asarray(zero_crossings)
-            p2.neutraldepth[depthname] = np.mean(np.asarray(self.ipres)[a])
             #print("More than one crossing")
-            return np.mean(self.itemps[a]),np.mean(self.isals[a]),self.neutraldepth[depthname]
+            return np.mean(self.isals[a]),np.mean(self.itemps[a]),np.mean(np.asarray(self.ipres)[a]),np.mean(self.igamma[a])
         else:
             return None
