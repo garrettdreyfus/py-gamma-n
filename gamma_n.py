@@ -71,7 +71,7 @@ def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
 
     scaling = (np.asarray(ds))/np.linalg.norm(np.asarray(ds))
 
-    return np.dot(scaling,ref_s)/np.sum(scaling),np.dot(scaling,ref_t)/np.sum(scaling),np.dot(scaling,ref_p)/np.sum(scaling),np.dot(scaling,ref_gamma)/np.sum(scaling)
+    return np.dot(scaling,ref_gamma)/np.sum(scaling), [np.dot(scaling,ref_s)/np.sum(scaling),np.dot(scaling,ref_t)/np.sum(scaling),np.dot(scaling,ref_p)/np.sum(scaling)]
     
 
 singlegamma_n = partial(singlegamma_n,loadProfiles(refdata),refdata)
@@ -87,7 +87,7 @@ def gamma_n(s,t,p,lon,lat):
         solutiont.append(outt)
         solutionp.append(outp)
         solutiongamma.append(outg)
-    return solutions,solutiont,solutionp,solutiongamma
+    return solutiongamma, [solutions,solutiont,solutionp]
 
 def neutralsurfaces(s,t,p,gamma_n,surfaces):
     sals=[]
@@ -102,18 +102,24 @@ def neutralsurfaces(s,t,p,gamma_n,surfaces):
 
     
 
-sals,temps,pres,gamma = gamma_n(SP,t,p,lon,lat)
+gamma,debug = gamma_n(SP,t,p,lon,lat)
 print(sals,temps,pres)
-knowns,knownt,knownp = neutralsurfaces(sals,temps,pres,gamma,gamma_n_surfaces)
+knowns,knownt,knownp = neutralsurfaces(SP,t,p,gamma,gamma_n_surfaces)
  
-fig, axs = plt.subplots(3)
+fig, axs = plt.subplots(1,3)
 fig.suptitle('comparisons')
-axs[0].plot(knowns)
-axs[0].plot(gsw.SA_from_SP(SP_ns_known,p_ns_known,lon,lat))
-axs[1].plot(knownt)
-axs[1].plot(gsw.CT_from_t(gsw.SA_from_SP(SP_ns_known,p_ns_known,lon,lat),t_ns_known,p_ns_known))
-axs[2].plot(knownp)
-axs[2].plot(p_ns_known)
+axs[0].scatter(range(3),knowns,label="python")
+axs[0].scatter(range(3),gsw.SA_from_SP(SP_ns_known,p_ns_known,lon,lat),label="matlab")
+axs[1].scatter(range(3),knownt,label="python")
+axs[1].scatter(range(3),gsw.CT_from_t(gsw.SA_from_SP(SP_ns_known,p_ns_known,lon,lat),t_ns_known,p_ns_known),label="matlab")
+axs[2].scatter(range(3),knownp,label="python")
+axs[2].scatter(range(3),p_ns_known,label="matlab")
+axs[0].legend()
+axs[1].legend()
+axs[2].legend()
+axs[0].set_ylabel("Salinity")
+axs[1].set_ylabel("Temperature")
+axs[2].set_ylabel("Pressure")
 plt.show()
 
 
