@@ -4,22 +4,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 from profile import Profile
 import gsw 
+import pickle
 
 refdata = h5py.File('refdata.mat', 'r')
 
 def loadProfiles(refdata):
     ## gamma_n goes lon, lat, pres
     profiles =[]
-    for lon in range(len(refdata["long_ref"])):
+    lats = np.asarray(refdata["lat_ref"]).flatten() 
+    lons = np.asarray(refdata["long_ref"]).flatten() 
+    for lon in range(len(lons)):
         profiles.append([])
-        for lat in range(len(refdata["lat_ref"])):
+        for lat in range(len(lats)):
             sals = np.asarray(refdata["SP_ref"][lon][lat][:]).flatten()
             if not np.isnan(sals).all():
                 temps = np.asarray(refdata["t_ref"][lon][lat][:]).flatten()
                 gamma = np.asarray(refdata["gamma_n_ref"][lon][lat][:]).flatten()
                 pres = np.asarray(refdata["p_ref"][:]).flatten()
                 #print(sals,temps,gamma,pres)
-                profiles[-1].append(Profile(sals,temps,pres,gamma,refdata["lat_ref"][lat],refdata["long_ref"][lon]))
+                profiles[-1].append(Profile(sals,temps,pres,gamma,lats[lat],lons[lon]))
             else:
                 profiles[-1].append(np.nan)
     return profiles
@@ -49,32 +52,61 @@ gamma_n_surfaces = [26.8, 27.9, 28.1]
 def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
     lats = np.asarray(refdata["lat_ref"]).flatten() 
     lons = np.asarray(refdata["long_ref"]).flatten() 
-    lati = np.floor(len(lats)*(lat-lats[0])/(float(lats[-1]-lats[0])))
-    lati = [lati,lati+1]
-    loni = np.floor(len(lons)*float(lon-lons[0])/(float(lons[-1]-lons[0])))
-    loni = [loni,loni-1]
+    lati = int(np.floor(1 + (len(lats)-1)*(lat-lats[0])/(float(lats[-1]-lats[0]))))
+    lati = [lati,lati-1]
+    loni = int(np.floor(1+ (len(lons) - 1)*float(lon-lons[0])/(float(lons[-1]-lons[0]))))-1
+    loni = [loni,loni+1]
     ref_s = []
     ref_t = []
     ref_p = []
     ref_gamma = []
     ds = []
-    for coords in np.array(np.meshgrid(loni,lati)).T.reshape(-1, 2):
-        coords = (int(coords[0]),int(coords[1]))
+    #hard coding combinations in to enforce order
+    for coords in [[lati[1],loni[0]],[lati[0],loni[0]],[lati[0],loni[1]],[lati[1],loni[1]]]:
+        coords = (int(coords[1]),int(coords[0]))
         prof = refprofiles[coords[0]][coords[1]]
         if prof:
-           sref,tref,pref,gammaref = prof.neutralDepth(s,t,p) 
-           ref_s.append(sref)
-           ref_t.append(tref)
-           ref_p.append(pref)
-           ref_gamma.append(gammaref)
-           ds.append(np.linalg.norm(((lon-lons[coords[0]])/(loni[1]-loni[0]),(lat-lats[coords[1]])/(lati[1]-lati[0]))))
+            sref,tref,pref,gammaref = prof.neutralDepth(s,t,p) 
+            ref_s.append(sref)
+            ref_t.append(tref)
+            ref_p.append(pref)
+            ref_gamma.append(gammaref)
+            ds.append(np.linalg.norm(((lon-lons[coords[0]])/(lons[loni[1]]-lons[loni[0]]),(lat-lats[coords[1]])/(lats[lati[1]]-lats[lati[0]]))))
+        else:
+            ref_s.append(np.nan)
+            ref_t.append(np.nan)
+            ref_p.append(np.nan)
+            ref_gamma.append(np.nan)
+    ref_s = np.asarray(ref_s)
+    ref_p = np.asarray(ref_p)
+    ref_t = np.asarray(ref_t)
+    ref_gamma = np.asarray(ref_gamma)
+    ref_s[np.isnan(ref_s)] = np.nanmean(ref_s)
+    ref_p[np.isnan(ref_p)] = np.nanmean(ref_p)
+    ref_t[np.isnan(ref_t)] = np.nanmean(ref_t)
+    ref_gamma[np.isnan(ref_gamma)] = np.nanmean(ref_gamma)
+
+    rx = (lon-lons[loni[0]])/(lons[lati[0]+1]-lons[loni[0]])
+    ry = (lat-lats[lati[0]])/(lats[lati[0]+1]-lats[lati[0]])
+
+    gamma_n = (1-ry)*(ref_gamma[0] + rx*(ref_gamma[1] - ref_gamma[0])) + ry*(ref_gamma[3] + rx*(ref_gamma[2] - ref_gamma[3]));
+
+
+
 
     scaling = (np.asarray(ds))/np.linalg.norm(np.asarray(ds))
 
     return np.dot(scaling,ref_gamma)/np.sum(scaling), [np.dot(scaling,ref_s)/np.sum(scaling),np.dot(scaling,ref_t)/np.sum(scaling),np.dot(scaling,ref_p)/np.sum(scaling)]
+    #return gamma_n, [0,0,0]
     
 
-singlegamma_n = partial(singlegamma_n,loadProfiles(refdata),refdata)
+
+with open('profiles.pickle', 'wb') as outfile:
+    pickle.dump(loadProfiles(refdata),outfile)
+with open('profiles.pickle', 'rb') as outfile:
+    profiles = pickle.load(outfile)
+
+singlegamma_n = partial(singlegamma_n,profiles,refdata)
 
 def gamma_n(s,t,p,lon,lat):
     solutions=[]
@@ -82,7 +114,7 @@ def gamma_n(s,t,p,lon,lat):
     solutionp = []
     solutiongamma =[]
     for l in range(len(p)):
-        outs,outt,outp,outg = singlegamma_n(s[l],t[l],p[l],lon,lat)
+        outg,[outs,outt,outp]= singlegamma_n(s[l],t[l],p[l],lon,lat)
         solutions.append(outs)
         solutiont.append(outt)
         solutionp.append(outp)
@@ -101,9 +133,10 @@ def neutralsurfaces(s,t,p,gamma_n,surfaces):
     return sals,temps,pres
 
     
-
+SP = gsw.SA_from_SP(SP,p,lon,lat)
+t = gsw.CT_from_t(SP,t,p)
 gamma,debug = gamma_n(SP,t,p,lon,lat)
-print(sals,temps,pres)
+
 knowns,knownt,knownp = neutralsurfaces(SP,t,p,gamma,gamma_n_surfaces)
  
 fig, axs = plt.subplots(1,3)
