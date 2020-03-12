@@ -101,8 +101,8 @@ def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
     
 
 
-with open('profiles.pickle', 'wb') as outfile:
-    pickle.dump(loadProfiles(refdata),outfile)
+#with open('profiles.pickle', 'wb') as outfile:
+    #pickle.dump(loadProfiles(refdata),outfile)
 with open('profiles.pickle', 'rb') as outfile:
     profiles = pickle.load(outfile)
 
