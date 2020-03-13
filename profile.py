@@ -85,9 +85,9 @@ class Profile:
         smallest = np.argmin(np.abs(Es))
         if len(zero_crossings)>=1 :
             if abs(self.ipres[zero_crossings[0]] - self.ipres[zero_crossings[-1]])>100:
-                return None
+                return [np.nan,np.nan,np.nan,np.nan]
             a  =np.asarray(zero_crossings)
             #print("More than one crossing")
             return np.mean(self.isals[a]),np.mean(self.itemps[a]),np.mean(np.asarray(self.ipres)[a]),np.mean(self.igamma[a])
         else:
-            return None
+            return [np.nan,np.nan,np.nan,np.nan]
