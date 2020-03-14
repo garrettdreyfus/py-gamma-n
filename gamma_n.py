@@ -58,7 +58,9 @@ def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
     ref_p = np.asarray(ref_p)
     ref_t = np.asarray(ref_t)
     ref_gamma = np.asarray(ref_gamma)
-
+    
+    np.min(ref_p)
+    np.max(ref_p)
 
     #ref_s[np.isnan(ref_s)] = np.nanmean(ref_s)
     #ref_p[np.isnan(ref_p)] = np.nanmean(ref_p)
@@ -67,7 +69,7 @@ def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
 
     rx = (lon-lons[loni[0]])/(lons[lati[0]+1]-lons[loni[0]])
     ry = (lat-lats[lati[0]])/(lats[lati[0]+1]-lats[lati[0]])
-
+    
     plt.show()
     gamma_n = (1-ry)*(ref_gamma[0] + rx*(ref_gamma[1] - ref_gamma[0])) + ry*(ref_gamma[3] + rx*(ref_gamma[2] - ref_gamma[3]));
 
