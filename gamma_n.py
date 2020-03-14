@@ -46,6 +46,7 @@ def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
     for coords in [[lati[1],loni[0]],[lati[0],loni[0]],[lati[0],loni[1]],[lati[1],loni[1]]]:
         coords = (int(coords[1]),int(coords[0]))
         prof = refprofiles[coords[0]][coords[1]]
+        #print(s)
         sref,tref,pref,gammaref = bottle_to_cast(s,t,p,prof.isals,prof.itemps,prof.ipres,prof.igamma)
         #sref,tref,pref,gammaref = prof.neutralDepth(s,t,p) 
         ref_s.append(sref)
@@ -57,14 +58,17 @@ def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
     ref_p = np.asarray(ref_p)
     ref_t = np.asarray(ref_t)
     ref_gamma = np.asarray(ref_gamma)
-    ref_s[np.isnan(ref_s)] = np.nanmean(ref_s)
-    ref_p[np.isnan(ref_p)] = np.nanmean(ref_p)
-    ref_t[np.isnan(ref_t)] = np.nanmean(ref_t)
-    ref_gamma[np.isnan(ref_gamma)] = np.nanmean(ref_gamma)
+
+
+    #ref_s[np.isnan(ref_s)] = np.nanmean(ref_s)
+    #ref_p[np.isnan(ref_p)] = np.nanmean(ref_p)
+    #ref_t[np.isnan(ref_t)] = np.nanmean(ref_t)
+    #ref_gamma[np.isnan(ref_gamma)] = np.nanmean(ref_gamma)
 
     rx = (lon-lons[loni[0]])/(lons[lati[0]+1]-lons[loni[0]])
     ry = (lat-lats[lati[0]])/(lats[lati[0]+1]-lats[lati[0]])
 
+    plt.show()
     gamma_n = (1-ry)*(ref_gamma[0] + rx*(ref_gamma[1] - ref_gamma[0])) + ry*(ref_gamma[3] + rx*(ref_gamma[2] - ref_gamma[3]));
 
 
