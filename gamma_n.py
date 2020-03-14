@@ -5,8 +5,9 @@ import matplotlib.pyplot as plt
 from profile import Profile
 import gsw 
 import pickle
+from lib.bottle_to_cast import bottle_to_cast
 
-refdata = h5py.File('refdata.mat', 'r')
+refdata = h5py.File('util/refdata.mat', 'r')
 
 def loadProfiles(refdata):
     ## gamma_n goes lon, lat, pres
@@ -45,18 +46,13 @@ def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
     for coords in [[lati[1],loni[0]],[lati[0],loni[0]],[lati[0],loni[1]],[lati[1],loni[1]]]:
         coords = (int(coords[1]),int(coords[0]))
         prof = refprofiles[coords[0]][coords[1]]
-        if prof and int(p) in prof.ipres:
-            sref,tref,pref,gammaref = prof.neutralDepth(s,t,p) 
-            ref_s.append(sref)
-            ref_t.append(tref)
-            ref_p.append(pref)
-            ref_gamma.append(gammaref)
-            ds.append(np.linalg.norm(((lon-lons[coords[0]])/(lons[loni[1]]-lons[loni[0]]),(lat-lats[coords[1]])/(lats[lati[1]]-lats[lati[0]]))))
-        else:
-            ref_s.append(np.nan)
-            ref_t.append(np.nan)
-            ref_p.append(np.nan)
-            ref_gamma.append(np.nan)
+        sref,tref,pref,gammaref = bottle_to_cast(s,t,p,prof.isals,prof.itemps,prof.ipres,prof.igamma)
+        #sref,tref,pref,gammaref = prof.neutralDepth(s,t,p) 
+        ref_s.append(sref)
+        ref_t.append(tref)
+        ref_p.append(pref)
+        ref_gamma.append(gammaref)
+        ds.append(np.linalg.norm(((lon-lons[coords[0]])/(lons[loni[1]]-lons[loni[0]]),(lat-lats[coords[1]])/(lats[lati[1]]-lats[lati[0]]))))
     ref_s = np.asarray(ref_s)
     ref_p = np.asarray(ref_p)
     ref_t = np.asarray(ref_t)
@@ -79,7 +75,7 @@ def singlegamma_n(refprofiles,refdata,s,t,p,lon,lat):
         return np.dot(scaling,ref_gamma)/np.sum(scaling), [np.dot(scaling,ref_s)/np.sum(scaling),np.dot(scaling,ref_t)/np.sum(scaling),np.dot(scaling,ref_p)/np.sum(scaling)]
     else:
         return np.nan,[np.nan]*3
-    #return gamma_n, [0,0,0]
+    return gamma_n, [0,0,0]
     
 
 
@@ -91,24 +87,14 @@ with open('profiles.pickle', 'rb') as outfile:
 singlegamma_n = partial(singlegamma_n,profiles,refdata)
 
 def gamma_n(s,t,p,lon,lat):
-    solutions=[]
-    solutiont = []
-    solutionp = []
-    solutiongamma =[]
-    for l in range(len(p)):
-        outg,[outs,outt,outp]= singlegamma_n(s[l],t[l],p[l],lon,lat)
-        solutions.append(outs)
-        solutiont.append(outt)
-        solutionp.append(outp)
-        solutiongamma.append(outg)
-    return solutiongamma, [solutions,solutiont,solutionp]
+    return singlegamma_n(s,t,p,lon,lat)
 
 def neutralsurfaces(s,t,p,gamma_n,surfaces):
     sals=[]
     temps=[]
     pres = []
     for surf in surfaces:
-        solp = np.interp(surf,gamma_n,p)
+        solp = np.interp(surf,np.asarray(gamma_n).flatten(),np.asarray(p).flatten())
         pres.append(solp)
         sals.append(np.interp(solp,p,s))
         temps.append(np.interp(solp,p,t))
