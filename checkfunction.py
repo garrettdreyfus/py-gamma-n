@@ -21,7 +21,7 @@ gamma_n_surfaces = [26.8, 27.9, 28.1]
 
 SP = gsw.SA_from_SP(SP,p,lon,lat)
 t = gsw.CT_from_t(SP,t,p)
-gamma,debug = gamma_n(SP,t,p,lon,lat)
+gamma,debug = gamma_n(SP,t,p,[lon]*len(SP),[lat]*len(SP))
 
 knowns,knownt,knownp = neutralsurfaces(SP,t,p,gamma,gamma_n_surfaces)
  

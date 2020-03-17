@@ -29,7 +29,7 @@ def convertToDictionary(refdata):
 refdata = h5py.File('refdata.mat', 'r')
 d = convertToDictionary(refdata)    
 print(d["t"].shape)
-ds = xr.Dataset(data_vars={"t":(["x","y","z"],d["t"]), 
+ds = xr.DataSet(data_vars={"t":(["x","y","z"],d["t"]), 
                            "s":(["x","y","z"],d["s"]),
                            "gamma":(["x","y","z"],d["gamma"])}, 
                 coords={"lat": (["y"], d["lats"]), 

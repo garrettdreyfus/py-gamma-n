@@ -8,52 +8,37 @@ import pickle
 from lib.bottle_to_cast import bottle_to_cast
 
 refdata = xr.open_dataset('util/refprofiles.nc')
-print(refdata.coords["lat"])
 
-def loadProfiles(refdata):
-    ## gamma_n goes lon, lat, pres
-    profiles =[]
+def gamma_n(refdata,s,t,p,lon,lat):
+    if isinstance(lat,float) or isinstance(lat,float)  :
+        lat = np.asarray([lat]*len(s))
+        lon = np.asarray([lon]*len(s))
+    else:
+        lat = np.asarray(lat)
+        lon = np.asarray(lon)
     lats = np.asarray(refdata.coords["lat"]).flatten() 
     lons = np.asarray(refdata.coords["lon"]).flatten() 
-    for lon in range(len(lons)):
-        profiles.append([])
-        for lat in range(len(lats)):
-            sals = np.asarray(refdata["SP_ref"][lon][lat][:]).flatten()
-            if not np.isnan(sals).all():
-                temps = np.asarray(refdata["t_ref"][lon][lat][:]).flatten()
-                gamma = np.asarray(refdata["gamma_n_ref"][lon][lat][:]).flatten()
-                pres = np.asarray(refdata["p_ref"][:]).flatten()
-                #print(sals,temps,gamma,pres)
-                profiles[-1].append(Profile(sals,temps,pres,gamma,lats[lat],lons[lon]))
-            else:
-                profiles[-1].append(np.nan)
-    return profiles
-            
-
-
-def singlegamma_n(refdata,s,t,p,lon,lat):
-    lats = np.asarray(refdata.coords["lat"]).flatten() 
-    lons = np.asarray(refdata.coords["lon"]).flatten() 
-    lati = int(np.floor(1 + (len(lats)-1)*(lat-lats[0])/(float(lats[-1]-lats[0]))))
+    lati = np.floor(1 + (len(lats)-1)*(lat-lats[0])/(lats[-1]-lats[0])).astype(int)
     lati = [lati,lati-1]
-    loni = int(np.floor(1+ (len(lons) - 1)*float(lon-lons[0])/(float(lons[-1]-lons[0]))))-1
+    loni = ((np.floor(1+ (len(lons) - 1)*(lon-lons[0])/((lons[-1]-lons[0]))))-1).astype(int)
     loni = [loni,loni+1]
     ref_s = []
     ref_t = []
     ref_p = []
     ref_gamma = []
-    ds = []
     #hard coding combinations in to enforce order
+    refpres = np.empty((len(lat),len(refdata.coords["pres"])))
     for coords in [[lati[1],loni[0]],[lati[0],loni[0]],[lati[0],loni[1]],[lati[1],loni[1]]]:
-        coords = (int(coords[1]),int(coords[0]))
-        reftemp = np.asarray(refdata.variables["t"][coords[0]][coords[1]])
-        refsal = np.asarray(refdata.variables["s"][coords[0]][coords[1]])
-        refgamma = np.asarray(refdata.variables["gamma"][coords[0]][coords[1]])
-        refpres = np.asarray(refdata.coords["pres"])
-        #refsal=refsal[~np.isnan(reftemp)]
-        #refpres=refpres[~np.isnan(reftemp)]
-        #refgamma=refgamma[~np.isnan(reftemp)]
-        #reftemp=reftemp[~np.isnan(reftemp)]
+        coords = np.asarray((coords[1],coords[0]))
+        l1 = xr.DataArray(coords[0])
+        l2 = xr.DataArray(coords[1])
+        reftemp = np.asarray(refdata["t"][l1,l2])
+        refsal = np.asarray(refdata["s"][l1,l2])
+        refgamma = np.asarray(refdata["gamma"][l1,l2])
+        
+
+        refpres[:] = refdata.coords["pres"]
+
         if ~np.isnan(reftemp).all():
             sref,tref,pref,gammaref = bottle_to_cast(s,t,p,refsal,reftemp,refpres,refgamma)
             #sref,tref,pref,gammaref = prof.neutralDepth(s,t,p) 
@@ -82,21 +67,10 @@ def singlegamma_n(refdata,s,t,p,lon,lat):
     
     gamma_n = (1-ry)*(ref_gamma[0] + rx*(ref_gamma[1] - ref_gamma[0])) + ry*(ref_gamma[3] + rx*(ref_gamma[2] - ref_gamma[3]));
 
-
-
-    #scaling = (np.asarray(ds))/np.linalg.norm(np.asarray(ds))
-
-    #if len(scaling) != 0:
-        #return np.dot(scaling,ref_gamma)/np.sum(scaling), [np.dot(scaling,ref_s)/np.sum(scaling),np.dot(scaling,ref_t)/np.sum(scaling),np.dot(scaling,ref_p)/np.sum(scaling)]
-    #else:
-        #return np.nan,[np.nan]*3
     return gamma_n, [0,0,0]
     
 
-singlegamma_n = partial(singlegamma_n,refdata)
-
-def gamma_n(s,t,p,lon,lat):
-    return singlegamma_n(s,t,p,lon,lat)
+gamma_n = partial(gamma_n,refdata)
 
 def neutralsurfaces(s,t,p,gamma_n,surfaces):
     sals=[]

@@ -3,49 +3,41 @@ import scipy.io as sio
 from progress.bar import Bar
 def nepbCTDExtract(fname):
     ctddata = sio.loadmat(fname)
-    lats = np.asarray(ctddata["lat"])[0]
-    lons = np.asarray(ctddata["lon"])[0]
+    lats = np.asarray(ctddata["lat"])[0][:10]
+    lons = np.asarray(ctddata["lon"])[0][:10]
     pres = np.asarray(ctddata["Pint"]).T[0]
-    sals = np.asarray(ctddata["Sint"]).T
-    thetas = np.asarray(ctddata["Tint"]).T
-    CT = np.asarray(ctddata["CT"]).T
-    SA = np.asarray(ctddata["Sint_abs"]).T
-    nspres = np.asarray(ctddata["P_gamma"]).T
-    PV = np.asarray(ctddata["PV"]).T
+    sals = np.asarray(ctddata["Sint"]).T[:10]
+    temps = np.asarray(ctddata["Tint"]).T[:10]
+    CT = np.asarray(ctddata["CT"]).T[:10]
+    SA = np.asarray(ctddata["Sint_abs"]).T[:10]
+    nspres = np.asarray(ctddata["P_gamma"]).T[:10]
+    PV = np.asarray(ctddata["PV"]).T[:10]
     ns = np.asarray(ctddata["P_gref"])
     profiles = []
     gammas = []
-    for p in Bar("profile").iter(range(int(len(lats)/100))):
-        data = {}
-        knownns = {}
-        knownpv = {}
-        if lats[p]>20 and lons[p]<0 or lons[p] > 170:
-            data["lat"]=lats[p]
-            data["lon"]=lons[p]
-            data["temp"]=[]
-            data["sal"]=[]
-            data["pres"]=[]
-            for j in range(len(pres)-20):
-                if ~np.isnan(sals[p][j]) and ~np.isnan(thetas[p][j]) and ~np.isnan(pres[j])\
-                        and abs(pres[j]) < 10000 and abs(thetas[p][j])<30 and abs(sals[p][j])<50:
-                    insitutemp = thetas[p][j]
-                    practicalsal = sals[p][j]
-                    singlepres = abs(pres[j])
-                    abssal = gsw.SA_from_SP(practicalsal,singlepres,lons[p],lats[p])
-                    conservativetemp = gsw.CT_from_t(abssal,insitutemp,singlepres)
-                    if abs(abssal-SA[p][j]) > 0.001:
-                        print("saldiff = ",abssal-SA[p][j])
-                    if abs(conservativetemp-CT[p][j]) > 0.001:
-                        print("tempdiff = ",conservativetemp-CT[p][j])
-                    data["temp"].append(insitutemp)
-                    data["sal"].append(practicalsal)
-                    data["pres"].append(singlepres)
-            print("beep")
-            gamma,debug = gamma_n(np.asarray(data["sal"]).flatten(),np.asarray(data["temp"]).flatten(),np.asarray(data["pres"]).flatten(),data["lon"],data["lat"])
-            plt.plot(gamma,data["pres"])
-            plt.show()
-            print("boop")
-            gammas.append(np.asarray(gamma))
+    print(pres.shape)
+    print(sals.shape)
+    newpres = np.empty((len(sals),6000))
+    newpres[:] = pres
+    pres = newpres
+    lons = np.asarray([lons]*6000).T
+    lats = np.asarray([lats]*6000).T
+    abssal = gsw.SA_from_SP(sals,pres,lons,lats)
+    ct = gsw.CT_from_t(abssal,temps,pres)
+    gamma = np.empty(sals.shape)
+    indexs = np.asarray(list(np.ndindex(gamma.shape)))
+    print(sals[indexs])
+    print(indexs.shape)
+    print(pres.shape)
+    print(lats.shape)
+    print(lons.shape)
+    print(indexs)
+    gamma,debug = gamma_n(abssal[indexs],ct[indexs],pres[indexs],lons[indexs],lats[indexs])
+    gamma[indexs] = gamma
+    plt.plot(gamma,data["pres"])
+    plt.show()
+    print("boop")
+    gammas.append(np.asarray(gamma))
     return np.asarray(gammas)
 
 gammas = nepbCTDExtract("testing/data/newnepbdata.mat")
