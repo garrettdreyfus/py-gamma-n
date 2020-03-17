@@ -15,7 +15,7 @@ def nepbCTDExtract(fname):
     ns = np.asarray(ctddata["P_gref"])
     profiles = []
     gammas = []
-    for p in Bar("profile").iter(range(int(len(lats)))):
+    for p in Bar("profile").iter(range(int(len(lats)/100))):
         data = {}
         knownns = {}
         knownpv = {}
@@ -42,13 +42,13 @@ def nepbCTDExtract(fname):
                     data["pres"].append(singlepres)
             print("beep")
             gamma,debug = gamma_n(np.asarray(data["sal"]).flatten(),np.asarray(data["temp"]).flatten(),np.asarray(data["pres"]).flatten(),data["lon"],data["lat"])
+            plt.plot(gamma,data["pres"])
+            plt.show()
             print("boop")
             gammas.append(np.asarray(gamma))
     return np.asarray(gammas)
 
 gammas = nepbCTDExtract("testing/data/newnepbdata.mat")
 
-plt.plot(gammas.T[0])
-plt.show()
 
 
