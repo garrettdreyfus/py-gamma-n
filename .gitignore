@@ -1,4 +1,2 @@
-profiles.pickle
-refdata.mat
-testingdata/
-testing/data/*
+pygamma_n/testing/data
+pygamma_n/util/refdata.mat

@@ -1,0 +1,13 @@
+Metadata-Version: 1.1
+Name: pygamma-n
+Version: 0.0.1
+Summary: A python adaptation of the MatLab Gamma N package for neutral density
+Home-page: https://github.com/garrettdreyfus/py-gamma-n
+Author: Garrett Finucane
+Author-email: garrettdreyfus@gmail.com
+License: MIT
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent

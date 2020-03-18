@@ -5,9 +5,18 @@ import matplotlib.pyplot as plt
 from profile import Profile
 import gsw 
 import pickle
-from lib.bottle_to_cast import bottle_to_cast
+from .lib.bottle_to_cast import bottle_to_cast
+import os, pygamma_n
+template = os.path.join(pygamma_n.__path__[0], 'util', 'refprofiles.nc')
 
-refdata = xr.open_dataset('util/refprofiles.nc')
+refdata = xr.open_dataset(template)
+
+def replaceNAN(m):
+    col_mean = np.nanmean(m, axis=0)
+    inds = np.where(np.isnan(m))
+    m[inds] = np.take(col_mean, inds[1])
+    return m
+
 
 def gamma_n(refdata,s,t,p,lon,lat):
     if isinstance(lat,float) or isinstance(lat,float)  :
@@ -16,6 +25,7 @@ def gamma_n(refdata,s,t,p,lon,lat):
     else:
         lat = np.asarray(lat)
         lon = np.asarray(lon)
+    lon[lon<0] = lon[lon<0]+360
     lats = np.asarray(refdata.coords["lat"]).flatten() 
     lons = np.asarray(refdata.coords["lon"]).flatten() 
     lati = np.floor(1 + (len(lats)-1)*(lat-lats[0])/(lats[-1]-lats[0])).astype(int)
@@ -29,38 +39,20 @@ def gamma_n(refdata,s,t,p,lon,lat):
     #hard coding combinations in to enforce order
     refpres = np.empty((len(lat),len(refdata.coords["pres"])))
     for coords in [[lati[1],loni[0]],[lati[0],loni[0]],[lati[0],loni[1]],[lati[1],loni[1]]]:
-        coords = np.asarray((coords[1],coords[0]))
-        l1 = xr.DataArray(coords[0])
-        l2 = xr.DataArray(coords[1])
+        l1 = xr.DataArray(coords[1])
+        l2 = xr.DataArray(coords[0])
         reftemp = np.asarray(refdata["t"][l1,l2])
         refsal = np.asarray(refdata["s"][l1,l2])
         refgamma = np.asarray(refdata["gamma"][l1,l2])
-        
-
         refpres[:] = refdata.coords["pres"]
-
-        if ~np.isnan(reftemp).all():
-            sref,tref,pref,gammaref = bottle_to_cast(s,t,p,refsal,reftemp,refpres,refgamma)
-            #sref,tref,pref,gammaref = prof.neutralDepth(s,t,p) 
-            ref_s.append(sref)
-            ref_t.append(tref)
-            ref_p.append(pref)
-            ref_gamma.append(gammaref)
-        else:
-            ref_s.append(np.nan)
-            ref_t.append(np.nan)
-            ref_p.append(np.nan)
-            ref_gamma.append(np.nan)
+        sref,tref,pref,gammaref = bottle_to_cast(s,t,p,refsal,reftemp,refpres,refgamma)
+        ref_s.append(sref)
+        ref_t.append(tref)
+        ref_p.append(pref)
+        ref_gamma.append(gammaref)
             
-    ref_s = np.asarray(ref_s)
-    ref_p = np.asarray(ref_p)
-    ref_t = np.asarray(ref_t)
-    ref_gamma = np.asarray(ref_gamma)
-
-    #ref_s[np.isnan(ref_s)] = np.nanmean(ref_s)
-    #ref_p[np.isnan(ref_p)] = np.nanmean(ref_p)
-    #ref_t[np.isnan(ref_t)] = np.nanmean(ref_t)
-    #ref_gamma[np.isnan(ref_gamma)] = np.nanmean(ref_gamma)
+    ref_s,ref_p,ref_t,ref_gamma  = replaceNAN(np.asarray(ref_s)),\
+            replaceNAN(np.asarray(ref_p)),replaceNAN(np.asarray(ref_t)),replaceNAN(np.asarray(ref_gamma))
 
     rx = (lon-lons[loni[0]])/(lons[lati[0]+1]-lons[loni[0]])
     ry = (lat-lats[lati[0]])/(lats[lati[0]+1]-lats[lati[0]])
