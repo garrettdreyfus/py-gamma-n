@@ -1,5 +1,10 @@
-from ..gamma_n import *
-lon = 187.317;
+from pygamma_n import gamma_n
+import gsw
+import matplotlib.pyplot as plt
+
+
+
+lon = -40.317;
 lat = -41.6667;
 
 SP =[35.066,35.086,35.089,35.078,35.025,34.851,34.696,34.572,34.531,34.509,34.496,34.452,34.458,34.456,34.488,34.536,34.579,34.612,34.642,34.657,34.685,34.707,34.72,34.729]
@@ -21,14 +26,14 @@ gamma_n_surfaces = [26.8, 27.9, 28.1]
 
 SP = gsw.SA_from_SP(SP,p,lon,lat)
 t = gsw.CT_from_t(SP,t,p)
-gamma,debug = gamma_n(SP,t,p,lon,lat)
+gamma,debug = gamma_n.gamma_n(SP,t,p,[lon]*len(SP),[lat]*len(SP))
 
-knowns,knownt,knownp = neutralsurfaces(SP,t,p,gamma,gamma_n_surfaces)
+knowns,knownt,knownp = gamma_n.neutralsurfaces(SP,t,p,gamma,gamma_n_surfaces)
  
 fig, axs = plt.subplots(1,3)
 fig.suptitle('comparisons')
 axs[0].scatter(range(3),knowns,label="python")
-axs[0].scatter(range(3),gsw.SA_from_SP(SP_ns_known,p_ns_known,lon,lat),label="matlab")
+#axs[0].scatter(range(3),gsw.SA_from_SP(SP_ns_known,p_ns_known,lon,lat),label="matlab")
 axs[1].scatter(range(3),knownt,label="python")
 axs[1].scatter(range(3),gsw.CT_from_t(gsw.SA_from_SP(SP_ns_known,p_ns_known,lon,lat),t_ns_known,p_ns_known),label="matlab")
 axs[2].scatter(range(3),knownp,label="python")

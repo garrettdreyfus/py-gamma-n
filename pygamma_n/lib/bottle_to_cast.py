@@ -37,10 +37,10 @@ def bottle_to_cast(s,t,p,s_ref,t_ref,p_ref,gamma_ref):
     z = np.zeros_like(Es)
     valid = np.full_like(Es,np.nan)
     ## fill the indexs with their z values
-    z[np.where(Es)] = np.abs(Esvalues)[np.where(Es)]
     valid[np.where(Es)] = np.abs(Pref)[np.where(Es)]
-    mask = np.ptp(valid,axis=1)
+    z[np.where(Es)] = np.abs(Esvalues)[np.where(Es)]
     Es = np.reciprocal(z)
+    mask = np.ptp(valid,axis=1)
     Es[np.where(Es == np.inf)] = 0
 
  
