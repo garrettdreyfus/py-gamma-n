@@ -1,8 +1,8 @@
-#Pygamma_n
+# Pygamma_n
 
 A python port of the gamma_n MATLAB neutral density toolkit using numpy and xarray
 
-##Installation
+## Installation
 
 The easiest way to install this package is to clone it and install it with pip. (When it is fully featured I will upload it to pypi)
 
@@ -13,7 +13,7 @@ pip install -e . --user
 
 ```
 
-##Usage
+## Usage
 
 To find neutral density
 ```
