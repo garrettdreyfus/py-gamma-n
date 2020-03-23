@@ -47,12 +47,15 @@ def gamma_n(refdata,s,t,p,lon,lat):
         ref_t.append(tref)
         ref_p.append(pref)
         ref_gamma.append(gammaref)
-        ds.append(((lon-lons[coords[1]])/(loni[1]-loni[0]),(lat-lats[coords[0]])/(lati[1]-lati[0])))
+        #ds.append(np.sqrt(np.square((lon-lons[coords[1]])/(loni[1]-loni[0]))+np.square((lat-lats[coords[0]])/(lati[1]-lati[0]))))
             
+    
+    print(ref_gamma)
     ref_s,ref_p,ref_t,ref_gamma  = replaceNAN(np.asarray(ref_s)),\
             replaceNAN(np.asarray(ref_p)),replaceNAN(np.asarray(ref_t)),replaceNAN(np.asarray(ref_gamma))
+    print(ref_gamma)
 
-    #ds = np.asarray(ds)/np.nansum(ds,axis=0)[:,None]
+    #ds = np.asarray(ds)/np.nansum(ds,axis=0)
     #gamma_n = np.nansum((ref_gamma.T * ds.T),axis=-1)
     rx = (lon-lons[loni[0]])/(lons[loni[0]+1]-lons[loni[0]])
     ry = (lat-lats[lati[0]])/(lats[lati[0]+1]-lats[lati[0]])
