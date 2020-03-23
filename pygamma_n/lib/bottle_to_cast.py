@@ -1,5 +1,17 @@
 import numpy as np
 import gsw
+#import matplotlib.pyplot as plt
+
+def diagMult(a,b):
+    return np.nansum((a * b),axis=-1)
+
+def zeroCross(Es,Esvalues,startEs,values):
+    dP = diagMult(Es,values)
+    dE = diagMult(Es,Esvalues)
+    firstE =  diagMult(startEs,Esvalues)
+    firstP =  diagMult(values,-startEs)
+    psol = firstE * (dP/dE) + firstP
+    return psol
 
 def bottle_to_cast(s,t,p,s_ref,t_ref,p_ref,gamma_ref):
     #assuming s,t,p are vectors
@@ -24,41 +36,45 @@ def bottle_to_cast(s,t,p,s_ref,t_ref,p_ref,gamma_ref):
     ##Differences in potential densities denotated as E
     Esvalues = refdens-datadens
     ###Find points before zero crossing
-    Es = (np.diff(np.sign(Esvalues)))
+    Es = (np.diff(np.sign(Esvalues)))/2.0
     ##Add the points after the zero crossing
     shiftedEs = np.insert(Es,0,0,axis=1)
-    Es = np.append(Es,np.zeros([Es.shape[0],1]),1)
+    Es = np.append(-Es,np.zeros([Es.shape[0],1]),1)
+    startEs = Es
     Es = Es+shiftedEs
 
-    if np.max(np.nansum(Es,axis=1)/2) >2:
+    if np.max(np.nansum(np.abs(Es),axis=1)/2) >2:
         print("Multiple Solutions")
     
     #instead of just bisecting lets take a weighted average
-    z = np.zeros_like(Es)
+    Emask = np.zeros_like(Es)
+    Pmask = np.zeros_like(Es)
+
     valid = np.full_like(Es,np.nan)
     ## fill the indexs with their z values
     valid[np.where(Es)] = np.abs(Pref)[np.where(Es)]
-    z[np.where(Es)] = np.abs(Esvalues)[np.where(Es)]
-    Es = np.reciprocal(z)
+
+    #Emask[np.where(Es)] = np.abs(Esvalues)[np.where(Es)]
+    #Pmask[np.where(Es)] = np.abs(Esvalues)[np.where(Es)]
+
+
     mask = np.ptp(valid,axis=1)
     Es[np.where(Es == np.inf)] = 0
 
  
-    ##Make Sure each row sums to one
-    Es = Es/np.nansum(Es,axis=1)[:,None]
-    #This multiplies but only cares for the diagonals
-    psol = np.nansum((Es * Pref),axis=-1)
-    ssol = np.nansum((Es * Sref),axis=-1)
-    tsol = np.nansum((Es * Tref),axis=-1)
-    gsol = np.nansum((Es * Gammaref),axis=-1)
+    psol = zeroCross(Es,Esvalues,startEs,Pref)
+    ssol = zeroCross(Es,Esvalues,startEs,Sref)
+    tsol = zeroCross(Es,Esvalues,startEs,Tref)
+    gsol = zeroCross(Es,Esvalues,startEs,Gammaref)
     #set to nan points without a solution or that have multiple zerocrossings seperated by over 100m
     psol[np.where(mask>100)] = np.nan
-    psol[psol==0] = np.nan
+    psol[np.logical_and(psol==0,psol==np.inf)] = np.nan
     ssol[np.where(mask>100)] = np.nan
-    ssol[ssol==0] = np.nan
+    ssol[np.logical_and(ssol==0,ssol==np.inf)] = np.nan
     tsol[np.where(mask>100)] = np.nan
-    tsol[tsol==0] = np.nan
+    tsol[np.logical_and(tsol==0,tsol==np.inf)] = np.nan
     gsol[np.where(mask>100)] = np.nan
-    gsol[gsol==0] = np.nan
+    gsol[np.logical_and(gsol==0,gsol==np.inf)] = np.nan
+    #print(psol)
     return ssol,tsol,psol,gsol
 
