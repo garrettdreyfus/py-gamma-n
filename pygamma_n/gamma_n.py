@@ -12,6 +12,7 @@ template = os.path.join(pygamma_n.__path__[0], 'util', 'refprofiles.nc')
 refdata = xr.open_dataset(template)
 
 def replaceNAN(m):
+    nans = np.isnan(m[0])
     col_mean = np.nanmean(m, axis=0)
     inds = np.where(np.isnan(m))
     m[inds] = np.take(col_mean, inds[1])

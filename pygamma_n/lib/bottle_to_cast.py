@@ -51,30 +51,22 @@ def bottle_to_cast(s,t,p,s_ref,t_ref,p_ref,gamma_ref):
     Pmask = np.zeros_like(Es)
 
     valid = np.full_like(Es,np.nan)
-    ## fill the indexs with their z values
-    valid[np.where(Es)] = np.abs(Pref)[np.where(Es)]
+    valid[np.where(Es)] = Es[np.where(Es)]
+    mask = np.nanmax(valid,axis=1)
 
-    #Emask[np.where(Es)] = np.abs(Esvalues)[np.where(Es)]
-    #Pmask[np.where(Es)] = np.abs(Esvalues)[np.where(Es)]
-
-
-    mask = np.ptp(valid,axis=1)
     Es[np.where(Es == np.inf)] = 0
-
+    Es[mask!=1] = 0
  
     psol = zeroCross(Es,Esvalues,startEs,Pref)
     ssol = zeroCross(Es,Esvalues,startEs,Sref)
     tsol = zeroCross(Es,Esvalues,startEs,Tref)
     gsol = zeroCross(Es,Esvalues,startEs,Gammaref)
+    Es[np.where(Es == np.inf)] = 0
     #set to nan points without a solution or that have multiple zerocrossings seperated by over 100m
-    psol[np.where(mask>100)] = np.nan
-    psol[np.logical_and(psol==0,psol==np.inf)] = np.nan
-    ssol[np.where(mask>100)] = np.nan
-    ssol[np.logical_and(ssol==0,ssol==np.inf)] = np.nan
-    tsol[np.where(mask>100)] = np.nan
-    tsol[np.logical_and(tsol==0,tsol==np.inf)] = np.nan
-    gsol[np.where(mask>100)] = np.nan
-    gsol[np.logical_and(gsol==0,gsol==np.inf)] = np.nan
+    psol[np.logical_or(psol==0,psol==np.inf)] = np.nan
+    ssol[np.logical_or(ssol==0,ssol==np.inf)] = np.nan
+    tsol[np.logical_or(tsol==0,tsol==np.inf)] = np.nan
+    gsol[np.logical_or(gsol==0,gsol==np.inf)] = np.nan
     #print(psol)
     return ssol,tsol,psol,gsol
 
