@@ -54,8 +54,15 @@ def bottle_to_cast(s,t,p,s_ref,t_ref,p_ref,gamma_ref):
     valid[np.where(Es)] = Es[np.where(Es)]
     mask = np.nanmax(valid,axis=1)
 
+    #copy = np.full_like(Es,0)
+    #copy[mask!=1] = -Es[maskh
+    print("#"*5)
+    if len(Es[mask==-1])>1:
+        print(Es[mask==-1][0])
+        Es[mask==-1] = -Es[mask==-1] + np.nan_to_num(np.append(Es[mask==-1][:,1:],np.zeros([Es[mask==-1].shape[0],1]),axis=1))
+        print(Es[mask==-1][0])
+
     Es[np.where(Es == np.inf)] = 0
-    Es[mask!=1] = 0
  
     psol = zeroCross(Es,Esvalues,startEs,Pref)
     ssol = zeroCross(Es,Esvalues,startEs,Sref)
