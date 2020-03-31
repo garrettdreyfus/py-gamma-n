@@ -1,7 +1,5 @@
 # Pygamma_n
-## <span style="color: red;">
-This code is not for distribution, it is for my own experimentation. Do not use it, it does not return a valid neutral density value. 
- </span>
+## <span style="color: red;"> This code is not for distribution, it is for my own experimentation. Do not use it, it does not return a valid neutral density value.  </span>
 
 A python port of the gamma_n MATLAB neutral density toolkit using numpy and xarray
 
